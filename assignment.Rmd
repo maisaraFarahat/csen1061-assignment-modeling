@@ -1,0 +1,109 @@
+## Initializing
+```{r}
+library(dplyr)
+library(knitr)
+library(RWeka)
+library(partykit)
+```
+## Reading Data
+```{r}
+sonar.data <- read.csv("sonar/sonar.all-data" , header = FALSE)
+
+
+glimpse(sonar.data)
+```
+## function for KFolds for repetitive usage
+```{r}
+kfolds <- function(c) {
+  kfold <- evaluate_Weka_classifier(c, numFolds = 10)
+  return(kfold)
+}
+```
+## Another one for the measures
+```{r}
+calculateMeasures <- function(kfolds) {
+  TP <- kfolds$confusionMatrix[1, 1]
+  TN <- kfolds$confusionMatrix[2, 2]
+  FP <- kfolds$confusionMatrix[2, 1]
+  FN <- kfolds$confusionMatrix[1, 2]
+
+  accuracy  <- (TP + TN) / (TP + TN + FP + FN)
+  precision <- TP / (TP + FP)
+  recall    <- TP / (TP + FN)
+  f1        <- 2 * precision * recall / (precision + recall)
+
+  res <- list(Accuracy = accuracy, Precision = precision, Recall = recall, F1 = f1)
+  return(res)
+}
+```
+## C4.5 classifier
+```{r}
+sonar.c45  <- J48(V61 ~ ., sonar.data)
+
+kfolds.c45 <- kfolds(sonar.c45)
+
+measures.c45 <- calculateMeasures(kfolds.c45)
+
+print(measures.c45)
+```
+## Other Classifiers
+
+### Random Forest classifier ( RF )
+```{r}
+RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
+
+sonar.RF <- RF(V61 ~ ., sonar.data)
+
+kfolds.RF <- kfolds(sonar.RF)
+
+measures.RF <- calculateMeasures(kfolds.RF)
+
+print(measures.RF)
+
+```
+
+### Support Vector Machine ( SVM )
+```{r}
+sonar.SVM <- SMO(V61 ~ ., sonar.data)
+kfolds.SVM <- kfolds(sonar.SVM)
+measures.SVM <- calculateMeasures(kfolds.SVM)
+print(measures.SVM)
+```
+
+### Naive Bayes ( NB )
+```{r}
+NB <- make_Weka_classifier("weka/classifiers/bayes/NaiveBayes")
+sonar.NB <- NB(V61 ~ ., sonar.data)
+kfolds.NB <- kfolds(sonar.NB)
+measures.NB <- calculateMeasures(kfolds.NB)
+print(measures.NB)
+```
+
+### Neural Networks ( Multiple Perceptrons ) ( MLP )
+```{r}
+MLP <- make_Weka_classifier("weka/classifiers/functions/MultilayerPerceptron")
+sonar.MLP <- MLP(V61 ~ ., sonar.data)
+kfolds.MLP <- kfolds(sonar.MLP)
+measures.MLP <- calculateMeasures(kfolds.MLP)
+print(measures.MLP)
+```
+
+
+
+### Bagging
+```{r}
+sonar.bag <- Bagging(formula(V61 ~ .,), sonar.data, control = Weka_control(W = "weka.classifiers.trees.J48"), options = list(model=TRUE))
+kfolds.bag <- kfolds(sonar.bag)
+measures.bag <- calculateMeasures(kfolds.bag)
+print(measures.bag)
+```
+
+### Boosting
+```{r}
+sonar.boost <- AdaBoostM1(V61 ~ ., sonar.data)
+kfolds.boost <- kfolds(sonar.boost)
+measures.boost <- calculateMeasures(kfolds.boost)
+print(measures.boost)
+```
+
+
